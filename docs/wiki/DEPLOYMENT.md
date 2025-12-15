@@ -259,30 +259,55 @@ Use services like:
 - Pingdom
 - StatusCake
 
-## Backup Strategy
+## ⚠️ CRITICAL: Backup Strategy
+
+**Your passwords are stored in MongoDB. Without regular backups, you risk losing all your passwords permanently if:**
+- Your database server crashes or fails
+- Your hard drive fails
+- Your system is compromised or corrupted
+- You accidentally delete the database
+- Your MongoDB instance is corrupted
+
+**Set up regular MongoDB backups immediately. Without backups, you will lose all your passwords if your database is lost. This is irreversible.**
 
 ### MongoDB Backups
 
-1. **Regular backups:**
+1. **Regular backups (REQUIRED):**
    ```bash
    mongodump --uri="mongodb://localhost:27017" --out=/backup/path
    ```
+   - **Recommended frequency:** Daily backups minimum
+   - **Store backups in multiple locations:** Local + remote (cloud storage)
+   - **Test restore procedures regularly** to ensure backups work
 
-2. **Automated backups:**
+2. **Automated backups (HIGHLY RECOMMENDED):**
    ```bash
-   # Add to crontab
+   # Add to crontab (runs daily at 2 AM)
    0 2 * * * mongodump --uri="mongodb://localhost:27017" --out=/backup/path/$(date +\%Y-\%m-\%d)
    ```
+   - Automate backups to prevent human error
+   - Keep multiple backup copies (last 7-30 days)
+   - Rotate old backups to save space
 
 3. **Backup encryption keys:**
    - Store `SESSION_SECRET` and `ENCRYPTION_KEY` securely
    - Use secrets management (HashiCorp Vault, AWS Secrets Manager)
-   - Never store keys in backups
+   - **Never store keys in the same location as database backups**
+   - Without encryption keys, you cannot decrypt your passwords even with a database backup
 
-4. **Test restore procedures:**
+4. **Test restore procedures (REQUIRED):**
    ```bash
    mongorestore --uri="mongodb://localhost:27017" /backup/path
    ```
+   - **Test backups monthly** to ensure they work
+   - A backup that can't be restored is useless
+   - Document your restore procedure
+
+5. **Backup Storage Best Practices:**
+   - Store backups in at least 2 different locations
+   - Use cloud storage (AWS S3, Google Cloud Storage, etc.) for off-site backups
+   - Encrypt backups if storing in cloud storage
+   - Verify backup integrity regularly
 
 ## Performance Optimization
 

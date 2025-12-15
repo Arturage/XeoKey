@@ -104,6 +104,16 @@ The server will start on `http://localhost:3000` by default (or the port specifi
    - Fill in the website, username, email (optional), password, and notes (optional)
    - Click "Save Password"
 
+**⚠️ IMPORTANT: Database Backups**
+
+**Your passwords are stored in MongoDB. Without regular backups, you risk losing all your passwords permanently if:**
+- Your database server crashes or fails
+- Your hard drive fails
+- Your system is compromised or corrupted
+- You accidentally delete the database
+
+**Set up regular MongoDB backups immediately after installation.** See the [Deployment Guide](docs/wiki/DEPLOYMENT.md#backup-strategy) for backup instructions. **Without backups, you will lose all your passwords if your database is lost.**
+
 ## Project Structure
 
 ```
@@ -277,10 +287,12 @@ This will:
    - Set up log rotation
    - Monitor for security events
 
-5. **Backup:**
-   - Regular MongoDB backups
+5. **Backup (CRITICAL):**
+   - **⚠️ Set up regular MongoDB backups immediately** - Without backups, you will lose all your passwords if the database is lost
+   - Regular MongoDB backups (daily recommended)
    - Backup encryption keys securely
-   - Test restore procedures
+   - Test restore procedures regularly
+   - Store backups in multiple locations (local + remote)
 
 ## License
 

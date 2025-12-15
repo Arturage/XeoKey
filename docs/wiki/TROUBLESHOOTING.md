@@ -15,7 +15,7 @@ Common issues and solutions for XeoKey.
    ```bash
    # Windows
    netstat -ano | findstr :3000
-   
+
    # Linux/Mac
    lsof -i :3000
    ```
@@ -73,7 +73,7 @@ Common issues and solutions for XeoKey.
    # Windows (check services)
    services.msc
    # Look for MongoDB service
-   
+
    # Linux/Mac
    sudo systemctl status mongod
    # or
@@ -89,7 +89,7 @@ Common issues and solutions for XeoKey.
    ```bash
    # Using MongoDB shell
    mongosh mongodb://localhost:27017
-   
+
    # Or test from command line
    mongosh "mongodb://localhost:27017" --eval "db.adminCommand('ping')"
    ```
@@ -148,6 +148,32 @@ Common issues and solutions for XeoKey.
 3. **Check server logs for errors**
 
 4. **Try refreshing the page**
+
+### Data Loss Prevention
+
+**⚠️ CRITICAL: If you lose your database, you will lose all your passwords permanently unless you have backups.**
+
+**Prevention:**
+1. **Set up regular MongoDB backups immediately** (see [Deployment Guide](./DEPLOYMENT.md#backup-strategy))
+2. **Test restore procedures regularly** - A backup that can't be restored is useless
+3. **Store backups in multiple locations** - Local + remote (cloud storage)
+4. **Backup encryption keys separately** - Without keys, you cannot decrypt passwords even with a database backup
+
+**If you've lost data:**
+1. **Check if you have backups:**
+   - Look for `mongodump` backup files
+   - Check cloud storage if configured
+   - Check automated backup locations
+
+2. **Restore from backup:**
+   ```bash
+   mongorestore --uri="mongodb://localhost:27017" /backup/path
+   ```
+
+3. **If no backups exist:**
+   - **Your passwords are permanently lost**
+   - This is why backups are critical
+   - Start fresh and set up backups immediately
 
 ## Authentication Issues
 
@@ -357,7 +383,7 @@ Common issues and solutions for XeoKey.
    # Correct format
    PORT=3000
    NODE_ENV=production
-   
+
    # Wrong format (no spaces around =)
    PORT = 3000
    ```

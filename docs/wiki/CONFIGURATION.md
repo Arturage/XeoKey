@@ -28,6 +28,14 @@ XeoKey uses environment variables for configuration. You can set these in a `.en
 - Remote: `mongodb://user:pass@host:27017/dbname`
 - MongoDB Atlas: `mongodb+srv://username:password@cluster.mongodb.net/dbname`
 
+**⚠️ CRITICAL WARNING: Database Backups**
+
+**Your passwords are stored in MongoDB. Without regular backups, you risk losing all your passwords permanently.**
+
+**You MUST set up regular MongoDB backups to protect your data.** See the [Deployment Guide](./DEPLOYMENT.md#backup-strategy) for backup instructions.
+
+**Without backups, you will lose all your passwords if your database is lost. This is irreversible.**
+
 ### Security Configuration
 
 | Variable | Description | Default | Required |

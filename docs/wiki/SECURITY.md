@@ -102,11 +102,13 @@ Comprehensive security headers on all responses:
    - Set up log rotation
    - Alert on suspicious activity
 
-7. **Backups**
-   - Regular MongoDB backups
-   - Backup encryption keys securely
-   - Test restore procedures
-   - Store backups securely
+7. **Backups (CRITICAL)**
+   - **⚠️ Set up regular MongoDB backups immediately** - Without backups, you will lose all your passwords if the database is lost
+   - Regular MongoDB backups (daily recommended)
+   - Backup encryption keys securely (separate from database backups)
+   - Test restore procedures regularly
+   - Store backups securely in multiple locations (local + remote)
+   - **Without backups, data loss is permanent and irreversible**
 
 ### For Users
 
