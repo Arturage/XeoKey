@@ -2,6 +2,7 @@ import { getDatabase } from '../db/mongodb';
 import { ObjectId } from 'mongodb';
 import * as crypto from 'crypto';
 import { passwordLogger } from '../utils/logger';
+import { debugLog } from '../utils/debug';
 
 export interface PasswordEntry {
   _id?: string;
@@ -217,7 +218,7 @@ export async function updatePasswordEntry(
     notes?: string;
   }
 ): Promise<boolean> {
-  passwordLogger.debug(`=== updatePasswordEntry CALLED === entryId=${entryId}, userId=${userId}, userIdType=${typeof userId}`);
+  debugLog(passwordLogger, `=== updatePasswordEntry CALLED === entryId=${entryId}, userId=${userId}, userIdType=${typeof userId}`);
   const db = getDatabase();
   const passwordsCollection = db.collection<PasswordEntry>('passwords');
 
@@ -228,7 +229,7 @@ export async function updatePasswordEntry(
 
   // Convert userId to string if it's an ObjectId (MongoDB might return it as ObjectId)
   const userIdString = typeof userId === 'string' ? userId : (userId as any).toString();
-  passwordLogger.debug(`Using userIdString for query: ${userIdString}, original type: ${typeof userId}`);
+  debugLog(passwordLogger, `Using userIdString for query: ${userIdString}, original type: ${typeof userId}`);
 
   // First, verify the entry exists and belongs to the user
   // Try with string first, then ObjectId if that doesn't work
@@ -237,13 +238,13 @@ export async function updatePasswordEntry(
     userId: userIdString
   };
 
-  passwordLogger.debug(`Looking for entry with filter: entryId=${entryId}, userId=${userIdString}`);
+  debugLog(passwordLogger, `Looking for entry with filter: entryId=${entryId}, userId=${userIdString}`);
 
   let existingEntry = await passwordsCollection.findOne(findFilter);
 
   // If not found and userId is a valid ObjectId, try with ObjectId
   if (!existingEntry && ObjectId.isValid(userIdString)) {
-    passwordLogger.debug('Trying with ObjectId format for userId...');
+    debugLog(passwordLogger, 'Trying with ObjectId format for userId...');
     findFilter = {
       _id: new ObjectId(entryId),
       userId: new ObjectId(userIdString)
@@ -263,7 +264,7 @@ export async function updatePasswordEntry(
     return false;
   }
 
-  passwordLogger.debug(`Entry found: entryId=${entryId}, userId=${existingEntry.userId}, website=${existingEntry.website}, entryUserIdType=${typeof existingEntry.userId}, requestedUserIdType=${typeof userId}`);
+  debugLog(passwordLogger, `Entry found: entryId=${entryId}, userId=${existingEntry.userId}, website=${existingEntry.website}, entryUserIdType=${typeof existingEntry.userId}, requestedUserIdType=${typeof userId}`);
 
   const updateData: any = {
     updatedAt: new Date(),
@@ -285,7 +286,7 @@ export async function updatePasswordEntry(
     return false;
   }
 
-  passwordLogger.debug(`Update data (password redacted): entryId=${entryId}, userId=${userId}, existingWebsite=${existingEntry.website}, fieldsToUpdate=${fieldsToUpdate.join(',')}`);
+  debugLog(passwordLogger, `Update data (password redacted): entryId=${entryId}, userId=${userId}, existingWebsite=${existingEntry.website}, fieldsToUpdate=${fieldsToUpdate.join(',')}`);
 
   try {
     // Use _id only for update since we already verified ownership above
@@ -296,14 +297,14 @@ export async function updatePasswordEntry(
 
     const updateOperation = { $set: updateData };
 
-    passwordLogger.debug(`MongoDB update query: entryId=${entryId}, userId=${userId}, filter=_id, updateDataKeys=${Object.keys(updateData).join(',')}, existingWebsite=${existingEntry.website}, newWebsite=${updateData.website || 'N/A'}`);
+    debugLog(passwordLogger, `MongoDB update query: entryId=${entryId}, userId=${userId}, filter=_id, updateDataKeys=${Object.keys(updateData).join(',')}, existingWebsite=${existingEntry.website}, newWebsite=${updateData.website || 'N/A'}`);
 
     const result = await passwordsCollection.updateOne(
       filter,
       updateOperation
     );
 
-    passwordLogger.debug(`MongoDB update result: matchedCount=${result.matchedCount}, modifiedCount=${result.modifiedCount}, upsertedCount=${result.upsertedCount}, acknowledged=${result.acknowledged}`);
+    debugLog(passwordLogger, `MongoDB update result: matchedCount=${result.matchedCount}, modifiedCount=${result.modifiedCount}, upsertedCount=${result.upsertedCount}, acknowledged=${result.acknowledged}`);
 
     // If the document was matched, check if it was actually modified
     if (result.matchedCount > 0) {
@@ -321,7 +322,7 @@ export async function updatePasswordEntry(
           const newValue = updateData[key];
           const isDifferent = existingValue !== newValue;
           if (isDifferent) {
-            passwordLogger.debug(`Field ${key} is different: existing=${existingValue}, new=${newValue}`);
+            debugLog(passwordLogger, `Field ${key} is different: existing=${existingValue}, new=${newValue}`);
           }
           return isDifferent;
         });
@@ -332,38 +333,38 @@ export async function updatePasswordEntry(
         } else {
           passwordLogger.error('Values are different but document was not modified - this indicates a MongoDB issue');
           // Force update by using replaceOne or try update again
-          passwordLogger.debug('Attempting to force update...');
+          debugLog(passwordLogger, 'Attempting to force update...');
           const forceResult = await passwordsCollection.updateOne(
             filter,
             { $set: updateData },
             { upsert: false }
           );
-          passwordLogger.debug(`Force update result: matchedCount=${forceResult.matchedCount}, modifiedCount=${forceResult.modifiedCount}`);
+          debugLog(passwordLogger, `Force update result: matchedCount=${forceResult.matchedCount}, modifiedCount=${forceResult.modifiedCount}`);
         }
       } else {
-        passwordLogger.debug('Update successful - document was modified');
+        debugLog(passwordLogger, 'Update successful - document was modified');
       }
 
       // Verify the update by fetching the document again
       const updatedEntry = await passwordsCollection.findOne(filter);
       if (updatedEntry) {
-        passwordLogger.debug(`Verification - updated entry: website=${updatedEntry.website}, updatedAt=${updatedEntry.updatedAt}`);
+        debugLog(passwordLogger, `Verification - updated entry: website=${updatedEntry.website}, updatedAt=${updatedEntry.updatedAt}`);
         // Check if website was actually updated
         if (updateData.website && updatedEntry.website !== updateData.website) {
           passwordLogger.error(`UPDATE VERIFICATION FAILED - website was not updated! expected=${updateData.website}, actual=${updatedEntry.website}, matchedCount=${result.matchedCount}, modifiedCount=${result.modifiedCount}`);
           // Try one more time with explicit field update
-          passwordLogger.debug('Retrying update with explicit website field...');
+          debugLog(passwordLogger, 'Retrying update with explicit website field...');
           const retryResult = await passwordsCollection.updateOne(
             filter,
             { $set: { website: updateData.website, updatedAt: new Date() } }
           );
-          passwordLogger.debug(`Retry result: matchedCount=${retryResult.matchedCount}, modifiedCount=${retryResult.modifiedCount}`);
+          debugLog(passwordLogger, `Retry result: matchedCount=${retryResult.matchedCount}, modifiedCount=${retryResult.modifiedCount}`);
           if (retryResult.modifiedCount > 0) {
             return true;
           }
           return false;
         }
-        passwordLogger.debug('Update verified successfully');
+        debugLog(passwordLogger, 'Update verified successfully');
       } else {
         passwordLogger.error('Could not verify update - document not found after update');
       }

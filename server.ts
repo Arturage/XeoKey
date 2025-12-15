@@ -1,5 +1,6 @@
 // Logger
 import { logger } from './utils/logger';
+import { debugLog } from './utils/debug';
 
 // MongoDB connection
 import { connectMongoDB, closeMongoDB, getDatabase, isConnected } from './db/mongodb';
@@ -344,7 +345,7 @@ const router = new Router();
 
 // Example middleware
 const loggerMiddleware: Middleware = async (request, params, query) => {
-  logger.debug(`${request.method} ${request.url}`);
+  debugLog(logger, `${request.method} ${request.url}`);
   return null; // Continue to next handler
 };
 
@@ -1698,10 +1699,10 @@ router.get("/passwords/:id", async (request, params, query) => {
 });
 
 router.post("/passwords/:id/update", async (request, params, query) => {
-  logger.debug('=== UPDATE ROUTE CALLED ===');
+  debugLog(logger, '=== UPDATE ROUTE CALLED ===');
   const session = await attachSession(request);
   if (!session) {
-    logger.debug('No session found, redirecting to login');
+    debugLog(logger, 'No session found, redirecting to login');
     return new Response(null, {
       status: 302,
       headers: {
@@ -1720,26 +1721,26 @@ router.post("/passwords/:id/update", async (request, params, query) => {
     const entryId = params.id || '';
     // Ensure userId is a string (MongoDB might return it as ObjectId)
     const userIdString = typeof session.userId === 'string' ? session.userId : (session.userId as any).toString();
-    logger.debug(`Processing update for entryId: ${entryId}, userId: ${userIdString}, userIdType: ${typeof userIdString}`);
+    debugLog(logger, `Processing update for entryId: ${entryId}, userId: ${userIdString}, userIdType: ${typeof userIdString}`);
 
-    logger.debug('About to parse formData...');
+    debugLog(logger, 'About to parse formData...');
     const formData = await request.formData();
-    logger.debug('FormData parsed successfully');
+    debugLog(logger, 'FormData parsed successfully');
 
     const csrfToken = formData.get('csrfToken')?.toString() || '';
-    logger.debug(`CSRF token received: ${csrfToken ? 'YES' : 'NO'}, token length: ${csrfToken.length}`);
-    logger.debug(`Session ID for CSRF verification: ${session.sessionId}, type: ${typeof session.sessionId}`);
+    debugLog(logger, `CSRF token received: ${csrfToken ? 'YES' : 'NO'}, token length: ${csrfToken.length}`);
+    debugLog(logger, `Session ID for CSRF verification: ${session.sessionId}, type: ${typeof session.sessionId}`);
 
     // Check what token is stored for this session
     const { getOrCreateCsrfToken } = await import('./security/csrf');
     const currentToken = getOrCreateCsrfToken(session.sessionId);
-    logger.debug(`Current token for session: ${currentToken.substring(0, 10)}..., matches submitted: ${currentToken === csrfToken}`);
+    debugLog(logger, `Current token for session: ${currentToken.substring(0, 10)}..., matches submitted: ${currentToken === csrfToken}`);
 
     // Verify CSRF token
     // If token doesn't match but session is valid, regenerate token and continue
     // This handles cases where the token in the form is stale
     let csrfValid = verifyCsrfToken(session.sessionId, csrfToken);
-    logger.debug(`CSRF token validation result: ${csrfValid}`);
+    debugLog(logger, `CSRF token validation result: ${csrfValid}`);
 
     if (!csrfValid) {
       logger.warn('CSRF token invalid, but session is valid. Regenerating token and continuing...');
@@ -1761,14 +1762,14 @@ router.post("/passwords/:id/update", async (request, params, query) => {
         },
       });
     }
-    logger.debug('CSRF token valid, proceeding with update...');
+    debugLog(logger, 'CSRF token valid, proceeding with update...');
 
     // Verify the password entry exists and belongs to the user
-    logger.debug(`Checking if entry exists... entryId: ${entryId}, userId: ${userIdString}`);
+    debugLog(logger, `Checking if entry exists... entryId: ${entryId}, userId: ${userIdString}`);
     let entry;
     try {
       entry = await getPasswordEntry(entryId, userIdString);
-      logger.debug(`Entry check result: ${entry ? 'FOUND' : 'NOT FOUND'}`);
+      debugLog(logger, `Entry check result: ${entry ? 'FOUND' : 'NOT FOUND'}`);
       if (!entry) {
         logger.error(`Entry not found for update: entryId: ${entryId}, userId: ${userIdString}`);
         return renderPage(`
@@ -1777,7 +1778,7 @@ router.post("/passwords/:id/update", async (request, params, query) => {
           <p><a href="/passwords" style="color: #9db4d4;">← Back to Passwords</a></p>
         `, "Update Entry - XeoKey", request);
       }
-      logger.debug('Entry found, proceeding with update...');
+      debugLog(logger, 'Entry found, proceeding with update...');
     } catch (error) {
       logger.error(`Error checking entry: ${error}`);
       return renderPage(`
@@ -1793,7 +1794,7 @@ router.post("/passwords/:id/update", async (request, params, query) => {
     const password = formData.get('password')?.toString() || '';
     const notes = sanitizeString(formData.get('notes')?.toString() || '');
 
-    logger.debug(`Received form data: entryId=${entryId}, userId=${userIdString}, website=${website}, username=${username}, email=${email}, passwordLength=${password.length}, hasWebsite=${!!website}, hasPassword=${!!password}`);
+    debugLog(logger, `Received form data: entryId=${entryId}, userId=${userIdString}, website=${website}, username=${username}, email=${email}, passwordLength=${password.length}, hasWebsite=${!!website}, hasPassword=${!!password}`);
 
     if (!website || !password) {
       logger.error(`Validation failed on server: entryId=${entryId}, userId=${userIdString}, website=${!!website}, password=${!!password}, websiteValue=${website}, passwordLength=${password.length}`);
@@ -1819,11 +1820,11 @@ router.post("/passwords/:id/update", async (request, params, query) => {
       notes: notes.trim() || undefined,
     };
 
-    logger.debug(`Calling updatePasswordEntry with: entryId=${entryId}, userId=${userIdString}, updates=${JSON.stringify({ ...updates, password: '[REDACTED]' })}`);
+    debugLog(logger, `Calling updatePasswordEntry with: entryId=${entryId}, userId=${userIdString}, updates=${JSON.stringify({ ...updates, password: '[REDACTED]' })}`);
 
            const updated = await updatePasswordEntry(entryId, userIdString, updates);
 
-           logger.debug(`Update result from updatePasswordEntry: ${updated}`);
+           debugLog(logger, `Update result from updatePasswordEntry: ${updated}`);
 
            if (updated) {
              // Track analytics
